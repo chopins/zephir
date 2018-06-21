@@ -2,24 +2,22 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2016 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
-*/
+ */
 
 namespace Zephir;
 
+use Zephir\Parser\ParseException;
+use Zephir\Compiler\FileInterface;
+use Zephir\Compiler\CompilerException;
 use Zephir\Documentation\DocblockParser;
+use Zephir\Exception\IllegalStateException;
 
 /**
  * CompilerFile
@@ -27,7 +25,7 @@ use Zephir\Documentation\DocblockParser;
  * This class represents every file compiled in a project
  * Every file may contain a class or an interface
  */
-class CompilerFile
+class CompilerFile implements FileInterface
 {
     /**
      * Namespace of the
@@ -75,6 +73,11 @@ class CompilerFile
     protected $_logger = null;
 
     /**
+     * @var AliasManager
+     */
+    protected $_aliasManager;
+
+    /**
      * CompilerFile constructor
      *
      * @param string $className
@@ -93,7 +96,7 @@ class CompilerFile
     }
 
     /**
-     * Returns the class definition related to the compiled file
+     * {@inheritdoc}
      *
      * @return ClassDefinition
      */
@@ -119,7 +122,7 @@ class CompilerFile
     }
 
     /**
-     * Checks if the class file belongs to an external dependency or not
+     * {@inheritdoc}
      *
      * @return bool
      */
@@ -131,8 +134,11 @@ class CompilerFile
     /**
      * Adds a function to the function definitions
      *
+     * @param Compiler $compiler
      * @param FunctionDefinition $func
      * @param array $statement
+     *
+     * @throws CompilerException
      */
     public function addFunction(Compiler $compiler, FunctionDefinition $func, $statement = null)
     {
@@ -149,6 +155,9 @@ class CompilerFile
      *
      * @param Compiler $compiler
      * @return array
+     *
+     * @throws IllegalStateException
+     * @throws ParseException
      */
     public function genIR(Compiler $compiler)
     {
@@ -170,11 +179,8 @@ class CompilerFile
 
         $ir = null;
         if ($changed) {
-            if (!function_exists('zephir_parse_file')) {
-                throw new Exception("Parser extension couldn't be loaded");
-            }
-
-            $ir = zephir_parse_file(file_get_contents($zepRealPath), $zepRealPath);
+            $parser = $compiler->getParserManager()->getParser();
+            $ir = $parser->parse($zepRealPath);
             $fileSystem->write($compilePath, json_encode($ir, JSON_PRETTY_PRINT));
         }
 
@@ -404,6 +410,16 @@ class CompilerFile
                                         'char'  => $property['char']
                                     )
                                 )
+                            ),
+                            array(
+                                'type' => 'return',
+                                'expr' => array(
+                                    'type'  => 'variable',
+                                    'value' => 'this',
+                                    'file'  => $property['file'],
+                                    'line'  => $property['line'],
+                                    'char'  => $property['char']
+                                )
                             )
                         )),
                         $docBlock,
@@ -577,7 +593,7 @@ class CompilerFile
         /**
          * Compilation context stores common objects required by compilation entities
          */
-        $compilationContext = new CompilationContext;
+        $compilationContext = new CompilationContext();
 
         /**
          * Set global compiler in the compilation context
@@ -698,7 +714,7 @@ class CompilerFile
         if (!$this->_external) {
             $expectedPath = strtolower(str_replace('\\', DIRECTORY_SEPARATOR, $namespace) . DIRECTORY_SEPARATOR . $name) . '.zep';
             if (strtolower($this->_filePath) != $expectedPath) {
-                $className = str_replace('\\', '/', $namespace) . '\\' . $name;
+                $className = $namespace . '\\' . $name;
                 $message = 'Unexpected class name ' . $className . ' in file: ' . $this->_filePath . ', expected: ' . $expectedPath;
                 throw new CompilerException($message);
             }
@@ -799,6 +815,7 @@ class CompilerFile
      *
      * @param Compiler $compiler
      * @param StringsManager $stringsManager
+     * @throws CompilerException
      */
     public function compile(Compiler $compiler, StringsManager $stringsManager)
     {
@@ -816,7 +833,7 @@ class CompilerFile
         /**
          * Compilation context stores common objects required by compilation entities
          */
-        $compilationContext = new CompilationContext;
+        $compilationContext = new CompilationContext();
 
         /**
          * Set global compiler in the compilation context

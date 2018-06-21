@@ -1,13 +1,49 @@
 <?php
+
+/*
+ +--------------------------------------------------------------------------+
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
+ |                                                                          |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
+ +--------------------------------------------------------------------------+
+*/
+
 namespace Zephir;
 
-abstract class BaseBackend
+use Zephir\Fcall\FcallAwareInterface;
+use Zephir\Fcall\FcallManagerInterface;
+
+abstract class BaseBackend implements FcallAwareInterface
 {
+    /**
+     * @var Config
+     */
+    protected $config;
+
     /**
      * The name of the backend (e.g. ZendEngine2)
      * @var string
      */
     protected $name;
+
+    /**
+     * @var FcallManagerInterface
+     */
+    protected $fcallManager;
+
+    /**
+     * BaseBackend constructor
+     *
+     * @param Config $config
+     * @throws Exception
+     */
+    public function __construct(Config $config)
+    {
+        $this->config = $config;
+    }
 
     public function getName()
     {
@@ -32,7 +68,26 @@ abstract class BaseBackend
         return realpath(__DIR__ . '/../templates/' . $this->name);
     }
 
+    /**
+     * Resolves the path to the source template file of the backend
+     *
+     * @param string $filename
+     * @return string Absolute path to template file
+     */
+    public function getTemplateFileContents($filename)
+    {
+        $filepath = realpath(rtrim($this->config->get('templatepath', 'backend'), '/').'/'.$this->name.'/'.$filename);
+        if (!file_exists($filepath)) {
+            $filepath = realpath(__DIR__ . '/../templates/'.$this->name.'/'.$filename);
+        }
+        return file_get_contents($filepath);
+    }
+
+    /**
+     * @return StringsManager
+     */
     abstract public function getStringsManager();
+
     abstract public function getTypeDefinition($type);
     abstract public function getTypeofCondition(Variable $variableVariable, $operator, $value, CompilationContext $context);
     abstract public function generateInitCode(&$groupVariables, $type, $pointer, Variable $variable);
@@ -123,11 +178,24 @@ abstract class BaseBackend
      */
     abstract public function getVariableCodePointer(Variable $variable);
 
+    abstract public function resolveValue($value, CompilationContext $context, $usePointer = false);
+
     public static function getActiveBackend()
     {
         if (version_compare(phpversion(), '7.0', '>=')) {
             return 'ZendEngine3';
         }
+
         return 'ZendEngine2';
+    }
+
+    /**
+     * {@inheritdoc}
+     *
+     * @param FcallManagerInterface $fcallManager
+     */
+    public function setFcallManager(FcallManagerInterface $fcallManager)
+    {
+        $this->fcallManager = $fcallManager;
     }
 }

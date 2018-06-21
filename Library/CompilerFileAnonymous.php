@@ -2,25 +2,18 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2016 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
 */
 
 namespace Zephir;
 
-use Zephir\Config;
-use Zephir\Logger;
+use Zephir\Compiler\FileInterface;
 
 /**
  * CompilerFileAnonymous
@@ -28,7 +21,7 @@ use Zephir\Logger;
  * This class represents an anonymous file created to dump
  * the code produced by an internal closure
  */
-class CompilerFileAnonymous
+class CompilerFileAnonymous implements FileInterface
 {
     /**
      * @var string
@@ -72,7 +65,7 @@ class CompilerFileAnonymous
     }
 
     /**
-     * Returns the class definition related to the compiled file
+     * {@inheritdoc}
      *
      * @return ClassDefinition
      */
@@ -92,7 +85,7 @@ class CompilerFileAnonymous
     }
 
     /**
-     * Checks if the class file belongs to an external dependency or not
+     * {@inheritdoc}
      *
      * @return bool
      */
@@ -163,7 +156,7 @@ class CompilerFileAnonymous
         /**
          * Compilation context stores common objects required by compilation entities
          */
-        $compilationContext = new CompilationContext;
+        $compilationContext = new CompilationContext();
 
         /**
          * Set global compiler in the compilation context

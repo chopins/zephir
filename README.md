@@ -1,12 +1,12 @@
-Zephir
-======
+# <img src="https://avatars0.githubusercontent.com/u/6891407" height="28px"/> Zephir
 
-[![Dependency Status](https://www.versioneye.com/package/phalcon:zephir/badge.png)](https://www.versioneye.com/package/phalcon:zephir)
-[![Latest Stable Version](https://poser.pugx.org/phalcon/zephir/v/stable.png)](https://packagist.org/packages/phalcon/zephir)
-[![Total Downloads](https://poser.pugx.org/phalcon/zephir/downloads.png)](https://packagist.org/packages/phalcon/zephir)
-[![License](https://poser.pugx.org/phalcon/zephir/license.svg)](https://packagist.org/packages/phalcon/zephir)
+[![Latest Stable Version][badge-zep-version]][zep-packagist]
+[![Total Downloads][badge-zep-downloads]][zep-packagist]
+[![License][badge-zep-license]][zep-packagist]
+[![Build on Linux][badge-zep-travisci]][zep-travisci]
+[![Build on Windows][badge-zep-appveyor]][zep-appveyor]
 
-Zephir - Ze(nd Engine) Ph(p) I(nt)r(mediate) - is a high level language that eases the creation and maintainability
+**Zephir** - Ze(nd Engine) Ph(p) I(nt)r(mediate) - is a high level language that eases the creation and maintainability
 of extensions for PHP. Zephir extensions are exported to C code that can be compiled and optimized by major C compilers
 such as gcc/clang/vc++. Functionality is exposed to the PHP language.
 
@@ -24,66 +24,89 @@ Compiler design goals:
 * Type speculation/inference
 * Allow runtime profile-guided optimizations, pseudo-constant propagation and indirect/virtual function inlining
 
-Requirements
-------------
+## Requirements
 
-To compile zephir-parser:
+* [re2c][re2c] >= 0.13.6
+* [Zephir Parser][zephir-parser] >= 1.1.0
+* A C compiler such as `gcc` >= 4.4 or an alternative such as `clang` >= 3.0,
+  `Visual C++` >= 11 or `Intel C++`. It is recommended to use `gcc` 4.4 or later
+* GNU `make` >= 3.81
+* `automake`
+* PHP development headers and tools
+* The `build-essential` package when using `gcc` on Ubuntu (and likely other distros as well)
 
-* [re2c](http://re2c.org/)
+## Installation
 
-To build the PHP extension:
+**NOTE:** The `development` branch will always contain the latest **unstable** version.
+If you wish to check older versions or formal, tagged release, please switch to the relevant
+[branch][zep-branches]/[tag][zep-tags].
 
-* g++ >= 4.4/clang++ >= 3.x/vc++ 9
-* gnu make 3.81 or later
-* php development headers and tools
+### Windows
 
-Installation
-------------
-You can install zephir using composer.
-Run `composer require phalcon/zephir`, run `./install` and then run `zephir`
-from your `bin-dir`. By default it is `./vendor/bin/zephir`.
-You can read more about composer binaries
-in it's [documentation](https://getcomposer.org/doc/articles/vendor-binaries.md).
+To install Zephir on Windows [follow this guide][zep-doc-windows].
 
-For global installation via composer you can use `composer global require`.
-Do not forget add `~/.composer/vendor/bin` into your `$PATH`.
+### Linux | macOS | BSD | Solaris
 
-Also you can just clone zephir repository and run `./install`.
+#### Git way
+
+Clone Zephir repository.
+
+Then, install Zephir by using command `./install` from project root dir.
 For global installation add `-c` flag.
 
-Additional notes on Ubuntu
---------------------------
+### Composer way
+
+You can install Zephir using composer.
+
+To get Zephir, run `composer require phalcon/zephir`.
+
+### Additional notes on Ubuntu
+
 The following packages are needed in Ubuntu:
 
-* apt-get install re2c libpcre3-dev
+* `apt-get install re2c libpcre3-dev`
 
-Usage
------
+## Usage
+
 Compile the extension:
 
 ```bash
-./bin/zephir compile
+zephir compile
 ```
 
-External Links
---------------
-* [Documentation](https://zephir-lang.com/)
-* [Official Blog](https://blog.zephir-lang.com/)
-* [Forum](https://forum.zephir-lang.com/)
-* [Twitter](https://twitter.com/zephirlang)
+## External Links
 
-License
--------
-Zephir is open-sourced software licensed under the MIT License. See the LICENSE file for more information.
+* [Documentation][zep-docs-site]
+* [Official Blog][zep-blog-site]
+* [Forum][zep-forum]
+* [Twitter][zep-twitter]
+* [Facebook Group][zep-facebook]
 
-Contributing
-------------
+## Contributing
 
-See [CONTRIBUTING.md](https://github.com/phalcon/zephir/blob/master/CONTRIBUTING.md) for details about contributions to this repository.
+See [CONTRIBUTING.md][zep-doc-contributting] for details about contributions to this repository.
 
-Current Build Status
---------------------
-Zephir is built under Travis CI service. Every commit pushed to this repository will queue a build into the continuous integration service and will run all PHPUnit tests to ensure that everything is going well and the project is stable. The current build status is:
+## License
 
-* Linux: [![Build Status](https://secure.travis-ci.org/phalcon/zephir.svg?branch=master)](http://travis-ci.org/phalcon/zephir)
-* Windows: [![Build status](https://ci.appveyor.com/api/projects/status/51encyoxdf4b6f31/branch/master?svg=true)](https://ci.appveyor.com/project/phalcon/zephir/branch/master)
+Zephir is open-sourced software licensed under the MIT License.
+See the LICENSE file for more information.
+
+[zep-packagist]: https://packagist.org/packages/phalcon/zephir
+[zep-travisci]: https://travis-ci.org/phalcon/zephir
+[zep-appveyor]: https://ci.appveyor.com/project/sergeyklay/zephir/branch/master
+[re2c]: http://re2c.org/
+[zephir-parser]: https://github.com/phalcon/php-zephir-parser
+[zep-branches]: https://github.com/phalcon/zephir/branches
+[zep-tags]: https://github.com/phalcon/zephir/tags
+[zep-doc-windows]: https://github.com/phalcon/zephir/blob/master/WINDOWS.md
+[zep-doc-contributting]: https://github.com/phalcon/zephir/blob/master/CONTRIBUTING.md
+[zep-docs-site]: https://docs.zephir-lang.com/
+[zep-blog-site]: https://blog.zephir-lang.com/
+[zep-forum]: https://forum.zephir-lang.com/
+[zep-twitter]: https://twitter.com/zephirlang
+[zep-facebook]: https://www.facebook.com/groups/zephir.language/
+[badge-zep-version]: https://poser.pugx.org/phalcon/zephir/v/stable.png
+[badge-zep-downloads]: https://poser.pugx.org/phalcon/zephir/downloads.png
+[badge-zep-license]: https://poser.pugx.org/phalcon/zephir/license.svg
+[badge-zep-travisci]: https://img.shields.io/travis/phalcon/zephir/master.svg
+[badge-zep-appveyor]: https://ci.appveyor.com/api/projects/status/cxa1810md7v6n095?svg=true

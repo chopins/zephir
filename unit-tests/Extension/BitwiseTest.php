@@ -2,18 +2,12 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2015 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
 */
 
@@ -124,9 +118,15 @@ class BitwiseTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($t->intShiftRight(), 0);
         $this->assertSame($t->int2ShiftRight(), 0);
         $this->assertSame($t->intShiftRightSimple(), 0);
-        
+
         // Bitwise NOT
         $this->assertSame($t->testBitwiseNot(666), -667);
         $this->assertSame($t->testBitwiseAndNot(5, 4), 1);
+
+        /**
+         * Bitwise XOR
+         * @issue https://github.com/phalcon/zephir/issues/1581
+         */
+        $this->assertSame(123 ^ 321, $t->testbitwiseXor());
     }
 }

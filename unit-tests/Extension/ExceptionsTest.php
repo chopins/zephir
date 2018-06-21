@@ -2,24 +2,19 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2015 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
 */
 
 namespace Extension;
 
 use Test\Exceptions;
+use Test\Exception;
 
 class ExceptionsTest extends \PHPUnit_Framework_TestCase
 {
@@ -140,7 +135,47 @@ class ExceptionsTest extends \PHPUnit_Framework_TestCase
             $t->testExceptionRethrow();
             $this->assertFalse();
         } catch (\Exception $e) {
-            $this->assertSame(8, $e->getLine());
+            $this->assertSame(11, $e->getLine());
         }
+    }
+
+    public function testMultiException()
+    {
+        $t = new Exceptions();
+        try {
+            $t->testMultiException("test", new Exception("Some Exception"));
+        } catch (Exception $e) {
+            $this->assertSame($e->getMessage(), "Some Exception");
+        }
+        $t->internalExceptionCallable = function () {
+            return false;
+        };
+        try {
+            $value = $t->testMultiException("test", new Exception("Some Exception"));
+            $this->assertSame($value, "test");
+        } catch (Exception $e) {
+            $this->assertSame(true, false);
+        }
+        try {
+            $t->testMultiException("test", new \Exception("Some Exception"));
+        } catch (\Exception $e) {
+            $this->assertSame($e->getMessage(), "Some Exception");
+        }
+        $t->exceptionCallable = function () {
+            return false;
+        };
+        try {
+            $t->testMultiException("test", new \Exception("Some Exception"));
+            $this->assertSame($value, "test");
+        } catch (\Exception $e) {
+            $this->assertSame(true, false);
+        }
+    }
+
+    public function testIssue1325()
+    {
+        $t   = new Exceptions();
+        $res = $t->issue1325();
+        $this->assertSame(1, $res);
     }
 }

@@ -2,18 +2,12 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2015 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
 */
 
@@ -21,6 +15,35 @@ namespace Extension;
 
 class StringTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @dataProvider providerHashEquals
+     * @param string $knownString
+     * @param string $userString
+     * @param string $expected
+     */
+    public function testHashEquals($knownString, $userString, $expected)
+    {
+        $t = new \Test\Strings();
+
+        $salt = '$2a$07$usesomesillystringforsalt$';
+        $knownString = crypt($knownString, $salt);
+        $userString = crypt($userString, $salt);
+
+        $this->assertSame($expected, $t->testHashEquals($knownString, $userString));
+    }
+
+    /**
+     * @dataProvider providerHashEqualsNonString
+     * @param string $knownString
+     * @param string $userString
+     */
+    public function testHashEqualsNonString($knownString, $userString)
+    {
+        $t = new \Test\Strings();
+
+        $this->assertFalse($t->testHashEquals($knownString, $userString));
+    }
+
     /**
      * @dataProvider providerCamelize
      */
@@ -198,6 +221,43 @@ class StringTest extends \PHPUnit_Framework_TestCase
 
         $escapedString = '\"\}\$hello\$\"\\\'';
         $this->assertSame($escapedString, $t->testWellEscapedMultilineString());
+    }
+
+    public function testStrToHex()
+    {
+        $t = new \Test\Strings();
+        $this->assertSame('746573742073656e74656e73652e2e2e', $t->strToHex("test sentense..."));
+    }
+
+    public function providerHashEquals()
+    {
+        return [
+            ['Phalcon',    'Phalcony',    false],
+            ['Phalcony',   'Phalcon',     false],
+            ['Phalcon',    'Phalcon',     true],
+            ['kristoffer', 'ingemansson', false],
+            ['kris',       'ingemansson', false],
+            ['Phalcon',    'phalcon',     false],
+            [' phalcon',   'phalcon',     false],
+            ['phalcon',    'phalcon',     true],
+            ['1234567890', '1234567890',  true],
+            ['',           'phalcon',     false],
+            ['phalcon',    '',            false],
+        ];
+    }
+
+    public function providerHashEqualsNonString()
+    {
+        return [
+            [null,       123,        false],
+            [123,        null,       false],
+            [123,        123,        false],
+            [123456,     123,        false],
+            [null,       'phalcon',  false],
+            ['phalcon',  null,       false],
+            [[],         false,      false],
+            [true,       [],         false],
+        ];
     }
 
     public function providerCamelize()

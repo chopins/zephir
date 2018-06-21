@@ -107,33 +107,38 @@ class Strings
 		return stripcslashes(str);
 	}
 
-    public function testHardcodedMultilineString()
-    {
-        return "
+	public function testHashEquals(var str1, var str2) -> bool
+	{
+		return hash_equals(str1, str2);
+	}
+
+	public function testHardcodedMultilineString()
+	{
+		return "
             Hello world
         ";
-    }
+	}
 
-    public function testEchoMultilineString()
-    {
-        echo "
+	public function testEchoMultilineString()
+	{
+		echo "
             Hello world
         ";
-    }
+	}
 
-    public function testTrimMultilineString()
-    {
-        return trim("
+	public function testTrimMultilineString()
+	{
+		return trim("
             Hello world
         ");
-    }
+	}
 
-    public function testWellEscapedMultilineString()
-    {
-        return trim("
+	public function testWellEscapedMultilineString()
+	{
+		return trim("
             \\\"\}\$hello\$\\\"\'
         ");
-    }
+	}
 
 	public function testInternedString1()
 	{
@@ -143,5 +148,25 @@ class Strings
 	public function testInternedString2()
 	{
 		return ~" hello "->trim();
+	}
+
+	public function strToHex(string value) -> string
+	{
+		int i = 0;
+		string ret = "";
+		while (i < value->length()) {
+			let ret .= dechex(ord(value[i]));
+			let i++;
+		}
+		return ret;
+	}
+
+	public function issue1267(value)
+	{
+		var x;
+		let value = str_replace(["\\", "\"", "'"], "", value);
+		let value = filter_var(value, FILTER_SANITIZE_STRING);
+		let x = trim(stripslashes(strip_tags(value)));
+		return trim(stripcslashes(strip_tags(value)));
 	}
 }

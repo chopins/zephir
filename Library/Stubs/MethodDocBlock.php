@@ -2,18 +2,12 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2016 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
 */
 
@@ -28,11 +22,13 @@ use Zephir\ClassMethod;
  */
 class MethodDocBlock extends DocBlock
 {
-    private $parameters = array();
+    private $parameters = [];
 
     private $return;
 
     private $shortcutName = '';
+
+    private $deprecated = false;
 
     /**
      * @var AliasManager
@@ -43,29 +39,24 @@ class MethodDocBlock extends DocBlock
     {
         parent::__construct($method->getDocBlock(), $indent);
 
+        $this->deprecated = $method->isDeprecated();
         $this->aliasManager = $aliasManager;
         $this->shortcutName = $method->isShortcut() ? $method->getShortcutName() : '';
+
         $this->parseMethodParameters($method);
         $this->parseLines();
+        $this->parseMethodReturnType($method);
+        $this->appendParametersLines();
 
-        if (!$this->return) {
-            $this->parseMethodReturnType($method);
-        }
-
-        if ($this->parameters) {
-            $this->appendParametersLines();
-        }
-
-        if ($this->return) {
+        if (!empty($this->return)) {
             $this->appendReturnLine();
         }
     }
 
     protected function parseMethodReturnType(ClassMethod $method)
     {
-        $return = array();
+        $return = [];
         $returnTypes = $method->getReturnTypes();
-
 
         if ($returnTypes) {
             foreach ($returnTypes as $type) {
@@ -74,6 +65,7 @@ class MethodDocBlock extends DocBlock
                 }
             }
         }
+
         $returnClassTypes = $method->getReturnClassTypes();
         if ($returnClassTypes) {
             foreach ($returnClassTypes as $key => $returnClassType) {
@@ -85,32 +77,35 @@ class MethodDocBlock extends DocBlock
             $return = array_merge($return, $returnClassTypes);
         }
 
-        //@TODO: refactoring
-        if (($returnClassTypes = $method->getReturnTypesRaw()) && isset($returnClassTypes['list'])) {
-            foreach ($returnClassTypes['list'] as $returnType) {
-                if (empty($returnType['cast']) || !$returnType['collection']) {
-                    continue;
+        if ($method->hasReturnTypesRaw()) {
+            $returnClassTypes = $method->getReturnTypesRaw();
+
+            if (!empty($returnClassTypes['list'])) {
+                foreach ($returnClassTypes['list'] as $returnType) {
+                    if (empty($returnType['cast']) || !$returnType['collection']) {
+                        continue;
+                    }
+
+                    $key  = $returnType['cast']['value'];
+                    $type = $key;
+
+                    if ($this->aliasManager->isAlias($type)) {
+                        $type = "\\" . $this->aliasManager->getAlias($type);
+                    }
+
+                    $return[$key] = $type . '[]';
                 }
-
-                $key  = $returnType['cast']['value'];
-                $type = $key;
-
-                if ($this->aliasManager->isAlias($type)) {
-                    $returnClassTypes[$key] = "\\" . $this->aliasManager->getAlias($type);
-                }
-
-                $return[$key] = $type . '[]';
             }
         }
 
-        if ($return) {
-            $this->return = array(join('|', $return), '');
+        if (!empty($return)) {
+            $this->return = [implode('|', $return), ''];
         }
     }
 
     protected function parseLines()
     {
-        $lines = array();
+        $lines = [];
 
         foreach ($this->lines as $line) {
             if (preg_match('#^@(param|return|var) +(.*)$#', $line, $matches) === 0) {
@@ -128,7 +123,7 @@ class MethodDocBlock extends DocBlock
                 } elseif ($docType == 'var' && $this->shortcutName == 'get') {
                     $docType = 'return';
                 } else {
-                    $name = isset($tokens[1]) ? '$' . $tokens[1] : '';
+                    $name = isset($tokens[1]) ? '$' . trim($tokens[1], '$') : '';
                 }
 
                 // TODO: there must be a better way
@@ -156,29 +151,36 @@ class MethodDocBlock extends DocBlock
     {
         list($type, $description) = $this->return;
 
-        $this->lines[] = '@return ' . $type . ' ' . $description;
+        $return = $type . ' ' . $description;
+        $this->lines[] = '@return ' . trim($return, ' ');
     }
 
     private function parseMethodParameters(ClassMethod $method)
     {
         $parameters = $method->getParameters();
+        $aliasManager = $method->getClassDefinition()->getAliasManager();
+
         if (!$parameters) {
             return;
         }
 
         foreach ($method->getParameters() as $parameter) {
-            if (isset($parameter['data-type'])) {
+            if (isset($parameter['cast'])) {
+                if ($aliasManager->isAlias($parameter['cast']['value'])) {
+                    $type = '\\' . $aliasManager->getAlias($parameter['cast']['value']);
+                } else {
+                    $type = $parameter['cast']['value'];
+                }
+            } elseif (isset($parameter['data-type'])) {
                 if ($parameter['data-type'] == 'variable') {
                     $type = 'mixed';
                 } else {
                     $type = $parameter['data-type'];
                 }
-            } elseif (isset($parameter['cast'])) {
-                $type = $parameter['cast']['value'];
             } else {
                 $type = 'mixed';
             }
-            $this->parameters['$' . $parameter['name']] = array($type, '');
+            $this->parameters['$' . trim($parameter['name'], '$')] = array($type, '');
         }
     }
 
@@ -186,7 +188,15 @@ class MethodDocBlock extends DocBlock
     {
         foreach ($this->parameters as $name => $parameter) {
             list($type, $description) = $parameter;
-            $this->lines[] = '@param ' . $type . ' ' . $name . ' ' . $description;
+
+            $param = $type . ' ' . $name . ' ' . $description;
+            $this->lines[] = '@param ' . trim($param, ' ');
         }
+
+        if ($this->deprecated) {
+            $this->lines[] = '@deprecated';
+        }
+
+        $this->lines = array_unique($this->lines);
     }
 }

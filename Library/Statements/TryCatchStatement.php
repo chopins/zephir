@@ -2,33 +2,22 @@
 
 /*
  +--------------------------------------------------------------------------+
- | Zephir Language                                                          |
- +--------------------------------------------------------------------------+
- | Copyright (c) 2013-2016 Zephir Team and contributors                     |
- +--------------------------------------------------------------------------+
- | This source file is subject the MIT license, that is bundled with        |
- | this package in the file LICENSE, and is available through the           |
- | world-wide-web at the following url:                                     |
- | http://zephir-lang.com/license.html                                      |
+ | Zephir                                                                   |
+ | Copyright (c) 2013-present Zephir Team (https://zephir-lang.com/)        |
  |                                                                          |
- | If you did not receive a copy of the MIT license and are unable          |
- | to obtain it through the world-wide-web, please send a note to           |
- | license@zephir-lang.com so we can mail you a copy immediately.           |
+ | This source file is subject the MIT license, that is bundled with this   |
+ | package in the file LICENSE, and is available through the world-wide-web |
+ | at the following url: http://zephir-lang.com/license.html                |
  +--------------------------------------------------------------------------+
 */
 
 namespace Zephir\Statements;
 
 use Zephir\CompilationContext;
-use Zephir\CompilerException;
+use Zephir\Compiler\CompilerException;
 use Zephir\Expression\Builder\BuilderFactory;
 use Zephir\Expression\Builder\Operators\BinaryOperator;
 use Zephir\StatementsBlock;
-use Zephir\Builder\StatementsBlockBuilder;
-use Zephir\Builder\Operators\BinaryOperatorBuilder;
-use Zephir\Builder\Statements\IfStatementBuilder;
-use Zephir\Builder\VariableBuilder;
-use Zephir\Statements\IfStatement;
 
 /**
  * TryCatchStatement
@@ -73,7 +62,11 @@ class TryCatchStatement extends StatementAbstract
             $codePrinter->output('if (EG(exception)) {');
             $codePrinter->increaseLevel();
 
+            $exc_var = $compilationContext->symbolTable->getTempVariableForWrite('variable', $compilationContext, $compilationContext);
+            $compilationContext->backend->copyOnWrite($exc_var, 'EG(exception)', $compilationContext);
+
             $exprBuilder = BuilderFactory::getInstance();
+            $ifs         = array();
 
             foreach ($this->_statement['catches'] as $catch) {
                 if (isset($catch['variable'])) {
@@ -85,7 +78,11 @@ class TryCatchStatement extends StatementAbstract
                     $variable = $compilationContext->symbolTable->getTempVariableForWrite('variable', $compilationContext, $compilationContext);
                 }
 
-                $compilationContext->backend->copyOnWrite($variable, 'EG(exception)', $compilationContext);
+                if ($compilationContext->backend->isZE3()) {
+                    $assignExceptionVarStmt = $exprBuilder->statements()->rawC('ZEPHIR_CPY_WRT(&' . $variable->getName() . ', &' . $exc_var->getName() . ');');
+                } else {
+                    $assignExceptionVarStmt = $exprBuilder->statements()->rawC('ZEPHIR_CPY_WRT(' . $variable->getName() . ', ' . $exc_var->getName() . ');');
+                }
 
                 /**
                  * @TODO, use a builder here
@@ -97,27 +94,39 @@ class TryCatchStatement extends StatementAbstract
                  * Check if any of the classes in the catch block match the thrown exception
                  */
                 foreach ($catch['classes'] as $class) {
-                    $ifCheck = $exprBuilder->statements()->ifX()
+                    $assignExceptVar = $exprBuilder->statements()->let(array(
+                        $exprBuilder->operators()->assignVariable($variable->getName(), $exprBuilder->variable($variable->getName()))
+                    ));
+
+                    $assignExceptVarStmt = new \Zephir\Expression\Builder\Statements\LetStatement($assignExceptVar->build());
+
+                    $ifs[] = $exprBuilder->statements()->ifX()
                         ->setCondition(
                             $exprBuilder->operators()->binary(
                                 BinaryOperator::OPERATOR_INSTANCEOF,
-                                $exprBuilder->variable($variable->getName()),
+                                $exprBuilder->variable($exc_var->getName()),
                                 $exprBuilder->variable($class['value'])
                             )
                         )
                         ->setStatements($exprBuilder->statements()->block(array_merge(
-                            array($exprBuilder->statements()->rawC('zend_clear_exception(TSRMLS_C);')),
+                            array(
+                                $exprBuilder->statements()->rawC('zend_clear_exception(TSRMLS_C);'),
+                                 $assignExceptionVarStmt
+                            ),
                             isset($catch['statements']) ? $catch['statements'] : array()
                         )));
-
-                    $ifStatement = new IfStatement($ifCheck->build());
-                    $ifStatement->compile($compilationContext);
-                }
-
-                if ($variable->isTemporal()) {
-                    $variable->setIdle(true);
                 }
             }
+
+            $primaryIf = $ifs[0];
+            $lastIf    = $ifs[0];
+            for ($i=1; $i<count($ifs); ++$i) {
+                $lastIf->setElseStatements($exprBuilder->statements()->block(array($ifs[$i])));
+                $lastIf = $ifs[$i];
+            }
+
+            $ifStatement = new IfStatement($primaryIf->build());
+            $ifStatement->compile($compilationContext);
 
             $codePrinter->decreaseLevel();
             $codePrinter->output('}');
